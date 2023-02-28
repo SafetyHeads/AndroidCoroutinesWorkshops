@@ -106,8 +106,48 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="8dp"
+                android:onClick="simpleLaunch"
+                android:text="5.1 Simple Launch"
+                android:textColor="@color/black" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:onClick="simpleLaunchTimer"
+                android:text="5.2 Simple Launch timer"
+                android:textColor="@color/black" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:onClick="simpleAsyncTimer"
+                android:text="5.3 Simple async timer"
+                android:textColor="@color/black" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
                 android:onClick="whatAreDispatchers"
                 android:text="6. Dispatchers - czym są"
+                android:textColor="@color/black" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:onClick="dispatchersWithLaunch"
+                android:text="6.1 Dispatchers with launch"
+                android:textColor="@color/black" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:onClick="dispatchersWithContext"
+                android:text="6.2 Dispatchers with context"
                 android:textColor="@color/black" />
 
             <Button
@@ -124,6 +164,62 @@
                 android:layout_marginEnd="8dp"
                 android:onClick="errorHandling"
                 android:text="8. Obsługa błędów"
+                android:textColor="@color/black" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:onClick="launchWithCrash"
+                android:text="8.1 Launch with crash"
+                android:textColor="@color/black" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:onClick="launchWithTryCatch"
+                android:text="8.2 Launch with try catch"
+                android:textColor="@color/black" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:onClick="launchWithHandler"
+                android:text="8.3 Launch with handler"
+                android:textColor="@color/black" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:onClick="asyncWithCrash"
+                android:text="8.4 Async with crash"
+                android:textColor="@color/black" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:onClick="asyncWithTryCatch"
+                android:text="8.5 Async with try catch"
+                android:textColor="@color/black" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:onClick="asyncWithCoroutineScope"
+                android:text="8.6 Async with coroutine scope"
+                android:textColor="@color/black" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:onClick="asyncWithSupervisorScope"
+                android:text="8.7 Async with supervisor scope"
                 android:textColor="@color/black" />
 
         </LinearLayout>

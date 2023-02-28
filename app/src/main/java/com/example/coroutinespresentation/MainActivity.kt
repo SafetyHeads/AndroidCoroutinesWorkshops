@@ -73,6 +73,33 @@ class MainActivity : AppCompatActivity() {
         appendWithBlank("- Mogą się między sobą komunikować")
     }
 
+//    Dzieje się w tle
+//    fun main() {
+//        a()
+//        b()
+//    }
+//    suspend fun a() {
+//        // flag 1
+//        print("1")
+//        // flag 2
+//        print("3")
+//        // flag 3
+//        print("5")
+//        // flag 4
+//        print("7")
+//    }
+//
+//    suspend fun b() {
+//        // flag 1
+//        print("2")
+//        // flag 2
+//        print("4")
+//        // flag 3
+//        print("6")
+//        // flat 4
+//        print("8")
+//    }
+
     // 3.0
     fun whyWeNeedCoroutines(v: View) {
         clear()
@@ -121,13 +148,60 @@ class MainActivity : AppCompatActivity() {
                     append("pokemon #1: ${root1.asJsonObject.get("name")}")
                 }
 
-                append("Rozpoczynam pobieranie #2")
+                console.post {
+                    append("Rozpoczynam pobieranie #2")
+                }
                 client.newCall(Request.Builder().get().url("https://pokeapi.co/api/v2/pokemon/raichu").build()).enqueue(object : Callback {
                     override fun onResponse(call: Call, response: Response) {
                         val root2 = JsonParser.parseReader(response.body?.charStream())
                         console.post {
                             append("pokemon #2: ${root2.asJsonObject.get("name")}")
                         }
+
+                        client.newCall(Request.Builder().get().url("https://pokeapi.co/api/v2/pokemon/raichu").build()).enqueue(object : Callback {
+                            override fun onResponse(call: Call, response: Response) {
+                                val root2 = JsonParser.parseReader(response.body?.charStream())
+                                console.post {
+                                    append("pokemon #2: ${root2.asJsonObject.get("name")}")
+                                }
+
+                                client.newCall(Request.Builder().get().url("https://pokeapi.co/api/v2/pokemon/raichu").build()).enqueue(object : Callback {
+                                    override fun onResponse(call: Call, response: Response) {
+                                        val root2 = JsonParser.parseReader(response.body?.charStream())
+                                        console.post {
+                                            append("pokemon #2: ${root2.asJsonObject.get("name")}")
+                                        }
+
+                                        client.newCall(Request.Builder().get().url("https://pokeapi.co/api/v2/pokemon/raichu").build()).enqueue(object : Callback {
+                                            override fun onResponse(call: Call, response: Response) {
+                                                val root2 = JsonParser.parseReader(response.body?.charStream())
+                                                console.post {
+                                                    append("pokemon #2: ${root2.asJsonObject.get("name")}")
+                                                }
+                                            }
+
+                                            override fun onFailure(call: Call, e: IOException) {
+                                                console.post {
+                                                    append("Nie udało się pobrać danych #2")
+                                                }
+                                            }
+                                        })
+                                    }
+
+                                    override fun onFailure(call: Call, e: IOException) {
+                                        console.post {
+                                            append("Nie udało się pobrać danych #2")
+                                        }
+                                    }
+                                })
+                            }
+
+                            override fun onFailure(call: Call, e: IOException) {
+                                console.post {
+                                    append("Nie udało się pobrać danych #2")
+                                }
+                            }
+                        })
                     }
 
                     override fun onFailure(call: Call, e: IOException) {
@@ -175,8 +249,69 @@ class MainActivity : AppCompatActivity() {
     }
 
     // 5.1 Podstawowa korutyna z delay
+    fun simpleLaunch(v: View) {
+        GlobalScope.launch {
+            withContext(Dispatchers.Main) {
+                append("start")
+            }
+            delay(5000)
+            withContext(Dispatchers.Main) {
+                append("end")
+            }
+        }
+    }
+
     // 5.2 Launch x2 i zsumowanie wartości
+    fun simpleLaunchTimer(v: View) {
+        GlobalScope.launch {
+            val start = System.currentTimeMillis()
+            val a = a()
+            val b = b()
+
+            append("Suma: ${a + b}")
+            val end = System.currentTimeMillis()
+            append("Finished at: ${end - start}")
+        }
+    }
+
+    suspend fun a() : Int {
+        delay(1000)
+        return 10
+    }
+
+    suspend fun b() : Int {
+        delay(2000)
+        return 5
+    }
+
     // 5.3 Async x2 i zsumowanie wartości - różnica w szybkości obliczenia
+    fun simpleAsyncTimer(v: View) {
+        lifecycleScope.launch {
+            val start = System.currentTimeMillis()
+            val a = async {
+                delay(1000)
+                return@async 10
+            }
+            val b = async {
+                delay(2000)
+                return@async 5
+            }
+
+            append("Suma: ${a.await() + b.await()}")
+            val end = System.currentTimeMillis()
+            append("Finished at: ${end - start}")
+        }
+    }
+
+    suspend fun a1() : Int {
+        delay(1000)
+        return 10
+    }
+
+    suspend fun b1() : Int {
+        delay(2000)
+        return 5
+    }
 
     // 6.0
     fun whatAreDispatchers(v: View) {
@@ -200,7 +335,26 @@ class MainActivity : AppCompatActivity() {
     }
 
     // 6.1 launch z dispatcherem
+    fun dispatchersWithLaunch(v: View) {
+        line()
+        lifecycleScope.launch(Dispatchers.IO) {
+            append("Start!")
+            delay(1000)
+            append("Dziala!")
+        }
+    }
+
     // 6.2 przykład withContext
+    fun dispatchersWithContext(v: View) {
+        line()
+        lifecycleScope.launch() {
+            withContext(Dispatchers.IO) {
+                append("Start!")
+                delay(1000)
+                append("Dziala!")
+            }
+        }
+    }
 
     // 7.0
     fun whatAreScopes(v: View) {
@@ -224,12 +378,109 @@ class MainActivity : AppCompatActivity() {
     }
 
     // 8.1 launch z crashem
+    fun launchWithCrash(v: View) {
+        lifecycleScope.launch {
+            abc()
+        }
+    }
+
+    suspend fun abc() {
+        delay(1000)
+        throw RuntimeException("Oh no!")
+    }
+
     // 8.2 launch try catch
+    fun launchWithTryCatch(v: View) {
+        lifecycleScope.launch {
+            try {
+                abc()
+            } catch (e : Exception) {
+                append("Przechwycono błąd")
+            }
+        }
+    }
+
     // 8.3 launch z handlerem
+    fun launchWithHandler(v: View) {
+        lifecycleScope.launch(CoroutineExceptionHandler { _, e ->
+            append("Przechwycono błąd")
+        }) {
+            abc()
+        }
+    }
+
     // 8.4 async z crashem
+    fun asyncWithCrash(v: View) {
+        lifecycleScope.launch {
+            val result = async { getValue() }
+            append(result.await().toString())
+        }
+    }
+
+    suspend fun getValue() : Int {
+        delay(1000)
+        throw RuntimeException("Oh no!")
+    }
+
+    suspend fun return10() : Int {
+        delay(2000)
+        return 10
+    }
+
     // 8.5 async z try catch
+    fun asyncWithTryCatch(v: View) {
+        lifecycleScope.launch {
+            val result = async { getValue() }
+
+            try {
+                append(result.await().toString())
+            } catch(e: Exception) {
+                append("Zlapalem blad!")
+            }
+        }
+    }
+
     // 8.6 async z coroutine scope try { coroutineScope {...}}
+    fun asyncWithCoroutineScope(v: View) {
+        lifecycleScope.launch {
+            try {
+                coroutineScope {
+                    val result = async { getValue() }
+                    val ten = async { return10() }
+                    append(result.await().toString())
+                    append(ten.await().toString())
+                }
+            } catch(e: Exception) {
+                append("Zlapalem blad!")
+            }
+        }
+    }
+
     // 8.7 async z supervisor scope supervisorScope { try...try...}
+    fun asyncWithSupervisorScope(v: View) {
+        lifecycleScope.launch {
+            try {
+                supervisorScope {
+                    val error = async { getValue() }
+                    val ten = async { return10() }
+
+                    try {
+                        append(error.await().toString())
+                    } catch (e: Exception) {
+                        append("result rzucil blad")
+                    }
+
+                    try {
+                        append(ten.await().toString())
+                    } catch (e: Exception) {
+                        append("ten rzucil blad")
+                    }
+                }
+            } catch(e: Exception) {
+                append("Zlapalem blad!")
+            }
+        }
+    }
 
     // 9.0 Flow
     // 9.1 Prosta flow
@@ -279,18 +530,26 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun append(line: String) {
-        console.text = console.text.toString() + line + "\n"
+        console.post {
+            console.text = console.text.toString() + line + "\n"
+        }
     }
 
     private fun appendWithBlank(line: String) {
-        console.text = console.text.toString() + "\n" + line + "\n"
+        console.post {
+            console.text = console.text.toString() + "\n" + line + "\n"
+        }
     }
 
     private fun line() {
-        console.append("//////////////\n")
+        console.post {
+            console.append("//////////////\n")
+        }
     }
 
     private fun clear() {
-        console.text = ""
+        console.post {
+            console.text = ""
+        }
     }
 }
