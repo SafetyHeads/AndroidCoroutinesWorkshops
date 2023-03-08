@@ -484,50 +484,313 @@ class MainActivity : AppCompatActivity() {
 
     // 9.0 Flow
     // 9.1 Prosta flow
-    // 9.2 Flow z try catch
-    // 9.3 Flow z .catch{}
-    // 9.5 Flow .onContext()
-    // 9.6 Buffer (emit co 100ms collect co 300)
-    // 9.7 Conflate (emit co 100ms collect co 300)
-    // 9.8 map filter distinctUntilChanged
-    // 9.9 Flow działają sekwencyjnie (filter, map, collect z logami)
-    // 9.10 Zip
-    // 9.11 Combine
-    // 9.12 FlatMap
-    // 9.13 wykrywanie zakonczenia flow (try catch finally)
+    fun mySimpleFlow(): Flow<Int> = flow {
+        for (i in 1..10) {
+            delay(1000)
+            emit(i)
+        }
+    }
 
-
-    var start = System.currentTimeMillis()
-    fun abc(v: View) {
+    fun simpleFlow(v: View) {
         lifecycleScope.launch {
-            start = System.currentTimeMillis()
-            launch {
-                get()
-                    .flatMapLatest {
-                        get2(it)
+            mySimpleFlow()
+                .collect { ourValue ->
+                    append(ourValue.toString())
+                }
+        }
+    }
+
+    // 9.2 Flow z try catch
+    fun mySimpleFlowWithError(): Flow<Int> = flow {
+        for (i in 1..10) {
+            if (i > 5) {
+                throw RuntimeException("OH NO!")
+            }
+            delay(1000)
+            emit(i)
+        }
+    }
+    fun tryCatchFlow(v: View) {
+        lifecycleScope.launch {
+            try {
+                mySimpleFlowWithError()
+                    .collect { ourValue ->
+                        append(ourValue.toString())
                     }
-                    .collect {
-                        delay(300)
-                        val end = System.currentTimeMillis()
-                        append("$it at: ${end - start}ms")
-                    }
+            } catch(e: java.lang.Exception) {
+                append("Wystapil blad!")
             }
         }
     }
 
-    fun get() = flow {
-        (1..3).forEach {
-            delay(300)
-            emit(it)
+    // 9.3 Flow z .catch{}
+    fun onErrorFlow(v: View) {
+        lifecycleScope.launch {
+            mySimpleFlowWithError()
+                .catch {
+                    append("Wystapil blad!")
+                }
+                .collect { ourValue ->
+                    append(ourValue.toString())
+                }
         }
     }
 
-    fun get2(input: Int) = flow {
-        (1..5).forEach {
-            delay(200)
-            emit("$input - $it")
+    // 9.4 Flow .onContext()
+    fun flowOnFlow(v: View) {
+        lifecycleScope.launch {
+            mySimpleFlowWithError()
+                .flowOn(Dispatchers.IO)
+                .collect { ourValue ->
+                    append(ourValue.toString())
+                }
         }
     }
+
+    // 9.5 Flow timing
+    var start = System.currentTimeMillis()
+    fun delayedFlow(): Flow<Int> = flow {
+        for (i in 1..3) {
+            delay(100)
+            append("emitted $i at ${System.currentTimeMillis() - start} ms")
+            emit(i)
+        }
+    }
+    fun flowTiming(v: View) {
+        start = System.currentTimeMillis()
+        lifecycleScope.launch {
+            delayedFlow()
+                .collect {
+                    delay(300)
+                    append("$it at ${System.currentTimeMillis() - start} ms")
+                }
+        }
+    }
+
+    // 9.6 Buffer (emit co 100ms collect co 300)
+    fun bufferFlow(v: View) {
+        start = System.currentTimeMillis()
+        lifecycleScope.launch {
+            delayedFlow()
+                .buffer()
+                .collect {
+                    delay(300)
+                    append("$it at ${System.currentTimeMillis() - start} ms")
+                }
+        }
+    }
+
+    // 9.7 Conflate (emit co 100ms collect co 300)
+    fun conflateFlow(v: View) {
+        start = System.currentTimeMillis()
+        lifecycleScope.launch {
+            delayedFlow()
+                .conflate()
+                .collect {
+                    delay(300)
+                    append("$it at ${System.currentTimeMillis() - start} ms")
+                }
+        }
+    }
+
+    // 9.8 map filter distinctUntilChanged
+//    fun operatorsFlow(v: View) {
+//        start = System.currentTimeMillis()
+//        lifecycleScope.launch {
+//            delayedFlow()
+//                .map {
+//                    it * 100
+//                }
+//                .collect {
+//                    delay(300)
+//                    append("$it at ${System.currentTimeMillis() - start} ms")
+//                }
+//        }
+//    }
+
+//        fun operatorsFlow(v: View) {
+//            start = System.currentTimeMillis()
+//            lifecycleScope.launch {
+//                delayedFlow()
+//                    .filter {
+//                        it > 1
+//                    }
+//                    .collect {
+//                        delay(300)
+//                        append("$it at ${System.currentTimeMillis() - start} ms")
+//                    }
+//            }
+//        }
+
+    fun myDuplicateFlow(): Flow<Int> = flow {
+        for (i in 1..3) {
+            delay(100)
+            emit(i)
+            emit(i)
+        }
+    }
+    fun operatorsFlow(v: View) {
+        start = System.currentTimeMillis()
+        lifecycleScope.launch {
+            delayedFlow()
+                .onEach {
+                    append("emitted $it at ${System.currentTimeMillis() - start} ms")
+                }
+                .distinctUntilChanged()
+                .collect {
+                    delay(300)
+                    append("$it at ${System.currentTimeMillis() - start} ms")
+                }
+        }
+    }
+
+    // 9.9 Flow działają sekwencyjnie (filter, map, collect z logami)
+    fun sequentialFlow(v: View) {
+        start = System.currentTimeMillis()
+        lifecycleScope.launch {
+            delayedFlow()
+                .map {
+                    append("Mapujemy $it")
+                    it * 100
+                }
+                .filter {
+                    append("Filtrujemy $it")
+                    it > 100
+                }
+                .collect {
+                    delay(300)
+                    append("$it at ${System.currentTimeMillis() - start} ms")
+                }
+        }
+    }
+
+    // 9.10 Zip
+    fun flowA(): Flow<Int> = flow {
+        for (i in 1..5) {
+            delay(100)
+            append("emitted A $i at ${System.currentTimeMillis() - start} ms")
+            emit(i)
+        }
+    }
+
+    fun flowB(): Flow<Int> = flow {
+        for (i in 10..15) {
+            delay(300)
+            append("emitted B $i at ${System.currentTimeMillis() - start} ms")
+            emit(i)
+        }
+    }
+
+    fun zipFlow(v: View) {
+        start = System.currentTimeMillis()
+        lifecycleScope.launch {
+            flowA()
+                .zip(flowB()) { a, b ->
+                    "$a,$b"
+                }
+                .collect {
+                    append("$it at ${System.currentTimeMillis() - start} ms")
+                }
+        }
+    }
+
+    // 9.11 Combine
+    fun combineFlow(v: View) {
+        start = System.currentTimeMillis()
+        lifecycleScope.launch {
+            flowA()
+                .combine(flowB()) { a, b ->
+                    "$a,$b"
+                }
+                .collect {
+                    append("$it at ${System.currentTimeMillis() - start} ms")
+                }
+        }
+    }
+
+    // 9.12 FlatMap
+    suspend fun getFromDatabase(key: String): Flow<Int> = flow {
+        delay(1000)
+        emit(key.length)
+    }.flowOn(Dispatchers.IO)
+
+    fun words(): Flow<String> = listOf(
+        "a",
+        "ab",
+        "abc",
+        "abcd",
+        "abcde",
+    ).asFlow()
+
+    fun flatMap(v: View) {
+        lifecycleScope.launch {
+            words()
+                .flatMapConcat {
+                    getFromDatabase(it)
+                }
+                .collect {
+                    append("Emit: $it")
+                }
+        }
+    }
+
+    // 9.13 wykrywanie zakonczenia flow (try catch finally)
+    fun checkCoroutineEnd(v: View) {
+        lifecycleScope.launch {
+            try {
+                delayedFlow()
+                    .collect {
+                        append("Emit: $it")
+                    }
+            } catch (e: java.lang.Exception) {
+
+            } finally {
+                append("Finally")
+            }
+        }
+    }
+
+    // 9.14 wykrywanie stanu flow (operatory .on...)
+    fun checkCoroutineState(v: View) {
+        lifecycleScope.launch {
+            delayedFlow()
+                .onStart { append("Start") }
+                .onEach { append("Wyemitowano $it") }
+                .onCompletion { append("Complete") }
+                .collect {
+                    append("Emit: $it")
+                }
+        }
+    }
+
+    // 9.15 StateFlow i po co nam jest
+    // 9.16 SharedFlow i po co nam jest
+    var counter = 10
+    var sharedFlow = MutableSharedFlow<Int>()
+    var stateFlow = MutableStateFlow(0)
+    fun hotFlow(v: View) {
+        lifecycleScope.launch {
+            stateFlow.emit(counter)
+            counter++
+        }
+    }
+
+    // Odkomentujcie ten kod, żeby przetestować 9.15 i 9.16 :)
+
+
+//    override fun onResume() {
+//        super.onResume()
+//        lifecycleScope.launch {
+//            stateFlow.collect{
+//                append("#1 ${it.toString()}")
+//            }
+//        }
+//        lifecycleScope.launch {
+//            stateFlow.collect{
+//                append("#2 ${it.toString()}")
+//            }
+//        }
+//    }
 
     private fun append(line: String) {
         console.post {
