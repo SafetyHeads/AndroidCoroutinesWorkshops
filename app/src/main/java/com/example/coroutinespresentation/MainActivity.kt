@@ -3,16 +3,25 @@ package com.example.coroutinespresentation
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
+import android.widget.HorizontalScrollView
 import android.widget.TextView
-import androidx.annotation.DrawableRes
 import androidx.lifecycle.lifecycleScope
-import com.google.gson.Gson
 import com.google.gson.JsonParser
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.core.Completable
+import io.reactivex.rxjava3.core.Maybe
+import io.reactivex.rxjava3.core.Observable
+import io.reactivex.rxjava3.core.Single
+import io.reactivex.rxjava3.disposables.CompositeDisposable
+import io.reactivex.rxjava3.schedulers.Schedulers
+import io.reactivex.rxjava3.subjects.BehaviorSubject
+import io.reactivex.rxjava3.subjects.PublishSubject
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import okhttp3.*
 import okhttp3.logging.HttpLoggingInterceptor
 import java.io.IOException
+import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
     lateinit var console: TextView
@@ -28,7 +37,8 @@ class MainActivity : AppCompatActivity() {
         interceptor.setLevel(HttpLoggingInterceptor.Level.BODY)
         client = OkHttpClient.Builder().addInterceptor(interceptor).build()
 
-        lifecycleScope
+        val scroll = findViewById<HorizontalScrollView>(R.id.scroll)
+        scroll.post { scroll.fullScroll(HorizontalScrollView.FOCUS_RIGHT) }
     }
 
     fun clear(v: View) {
@@ -791,6 +801,257 @@ class MainActivity : AppCompatActivity() {
 //            }
 //        }
 //    }
+
+
+
+    // Rx kotlin
+    // 10.1 simple single
+    fun single(v: View) {
+//        val single = Single.create {
+//            it.onSuccess(1)
+//        }
+
+        val single = Single.just(1)
+
+        single
+            .delay(1, TimeUnit.SECONDS)
+            .subscribe() { value : Int, error : Throwable? ->
+            append(value.toString())
+        }
+    }
+
+    // 10.2 simple observable
+    fun observable(v: View) {
+//        val observable = Observable.create {
+//            for (i in 1..5) {
+//                it.onNext(i)
+//            }
+//            it.onComplete()
+//        }
+
+        val observable = Observable.just(1..5)
+
+        observable
+            .delay(1, TimeUnit.SECONDS)
+            .subscribe {
+                append(it.toString())
+            }
+    }
+
+    // 10.3 simple maybe
+    fun maybe(v: View) {
+        val maybe = Maybe.empty<Int>()
+
+        maybe
+            .delay(1, TimeUnit.SECONDS)
+            .subscribe {
+                append("Wyemitowano: $it")
+            }
+    }
+
+    // 10.4 completable
+    fun completable(v: View) {
+        val maybe = Completable.fromCallable {
+            // wyczyść baze danych
+        }
+
+        maybe
+            .delay(1, TimeUnit.SECONDS)
+            .subscribe {
+                append("Udalo sie!")
+            }
+    }
+
+    // 10.5 observeOn subscribeOn
+    fun observeSubscribe(v: View) {
+        val single = Single.fromCallable {
+            val response = client.newCall(Request.Builder().get().url("https://pokeapi.co/api/v2/pokemon/pikachu").build()).execute()
+            val root = JsonParser.parseReader(response.body?.charStream())
+            root.asJsonObject.get("name").asString
+        }
+
+        single
+            .delay(1, TimeUnit.SECONDS)
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe() { value : String, error : Throwable? ->
+                append(value)
+            }
+    }
+
+    // 10.6 error handling
+    fun errorHandlingRx(v: View) {
+        val maybe = Maybe.error<Int>(java.lang.RuntimeException("Oh no!"))
+
+        maybe
+            .delay(1, TimeUnit.SECONDS)
+            .subscribe(
+                { value: Int ->
+                    append("wyemitowano: $value")
+                },
+                { throwable: Throwable ->
+                    append("blad: ${throwable.message}")
+                }
+            )
+    }
+
+    // 10.7 map filter and others
+    fun transformations(v: View) {
+        val observable = Observable.just(1,2,3,4,5)
+
+        observable
+            .delay(1, TimeUnit.SECONDS)
+            .map {
+                append("Mapujemy $it")
+                it * 100
+            }
+            .filter {
+                append("Filtrujemy $it")
+                it > 100
+            }
+            .subscribe(
+                { value: Int ->
+                    append("wyemitowano: $value")
+                },
+                { throwable: Throwable ->
+                    append("blad: ${throwable.message}")
+                }
+            )
+    }
+
+    // 10.8 flatMap
+    fun multiply(value: Int) : Single<Int> {
+        return Single.just(value * 100).delay(2, TimeUnit.SECONDS)
+    }
+    fun flatMapRx(v: View) {
+        val observable = Observable.just(1,2,3,4,5)
+
+        observable
+            .delay(1, TimeUnit.SECONDS)
+            .flatMapSingle { // Wykonuje wszystko na raz w dowolnej kolejnosci
+                multiply(it)
+            }
+//            .switchMapSingle { // Jezeli przyjdzie nowa wartosc zanim stara sie przetworzy, to porzuci przetwarzanie
+//                multiply(it)
+//            }
+//            .concatMapSingle { // Pilnuje kolejnosci wykonywania polecen
+//                multiply(it)
+//            }
+            .subscribe(
+                { value: Int ->
+                    append("wyemitowano: $value")
+                },
+                { throwable: Throwable ->
+                    append("blad: ${throwable.message}")
+                }
+            )
+    }
+
+    // 10.9 onNext onSuccess...
+    fun checkingStateRx(v: View) {
+        val observable = Observable.just(2,)
+
+        observable
+            .delay(1, TimeUnit.SECONDS)
+            .doOnNext { append("doOnNext: $it") }
+            .map {
+                it * 100
+            }
+            .doOnNext { append("doOnNext po mapie: $it") }
+            .filter {
+                append("Filtrujemy $it")
+                it > 100
+            }
+            .doOnNext { append("doOnNext po filtrowaniu: $it") }
+            .subscribe {
+                append(it.toString())
+            }
+    }
+
+    // 10.10 zip
+    fun aRx() = Observable.just(1,2,3,4,5)
+    fun bRx() = Observable.just("A","B","C","D","E")
+
+    fun zip(v: View) {
+        aRx().zipWith(bRx()) { a, b ->
+            "$a$b"
+        }
+            .subscribe {
+                append(it)
+            }
+    }
+
+    // 10.11 combineLatest
+    fun combineLatest(v: View) {
+        Observable.combineLatest(
+            aRx(),
+            bRx()
+        ) { a, b ->
+            "$a$b"
+        }
+            .subscribe {
+                append(it)
+            }
+    }
+
+    // 10.12 PublishSubject
+    val subject = PublishSubject.create<Int>()
+    var i = 0
+    fun publishSubject(v: View) {
+        subject.onNext(i++)
+    }
+
+    //    override fun onResume() {
+//        super.onResume()
+//
+//        subject.subscribe {
+//            append("#1 $it")
+//        }
+//
+//        subject
+//            .delaySubscription(10, TimeUnit.SECONDS)
+//            .subscribe {
+//            append("#2 $it")
+//        }
+//    }
+
+    // 10.13 BehaviorSubject
+    val bSubject = BehaviorSubject.create<Int>()
+    var j = 0
+    fun behaviorSubject(v: View) {
+        bSubject.onNext(j++)
+    }
+
+//    override fun onResume() {
+//        super.onResume()
+//
+//        bSubject.subscribe {
+//            append("#1 $it")
+//        }
+//
+//        bSubject
+//            .delaySubscription(10, TimeUnit.SECONDS)
+//            .subscribe {
+//            append("#2 $it")
+//        }
+//    }
+
+    // 10.14 Dispose
+    val disposables = CompositeDisposable()
+
+    fun dispose(v: View) {
+        val disposable = Single.just(1)
+        .subscribe { value, error ->
+
+        }
+
+        disposable.dispose()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        disposables.clear()
+    }
 
     private fun append(line: String) {
         console.post {
